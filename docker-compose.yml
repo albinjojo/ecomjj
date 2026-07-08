@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ./ecom-backend
+    container_name: jjstores_backend
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./ecom-backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./ecom-frontend
+    container_name: jjstores_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./ecom-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
