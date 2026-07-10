@@ -13,7 +13,7 @@ const categoriesRouter = require('./routes/categories.route');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads'));
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
