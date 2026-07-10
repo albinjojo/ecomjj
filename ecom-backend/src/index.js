@@ -3,15 +3,21 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 const productsRouter = require('./routes/products.route');
+const categoriesRouter = require('./routes/categories.route');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // 200 requests per IP per window
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use(generalLimiter);
@@ -21,6 +27,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/products', productsRouter);
+app.use('/api/categories', categoriesRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
