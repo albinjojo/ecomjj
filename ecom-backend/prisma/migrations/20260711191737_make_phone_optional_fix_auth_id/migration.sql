@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "users" ALTER COLUMN "phone" DROP NOT NULL,
+ALTER COLUMN "auth_user_id" SET DATA TYPE VARCHAR;

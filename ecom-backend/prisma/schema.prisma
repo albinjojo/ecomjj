@@ -50,9 +50,9 @@ model Category {
 model User {
   id         BigInt   @id @default(autoincrement())
   name       String   @db.VarChar
-  phone      String   @db.VarChar
+  phone      String?  @db.VarChar
   email      String   @db.VarChar @unique
-  authUserId String   @map("auth_user_id") @db.Uuid @unique
+  authUserId String   @map("auth_user_id") @db.VarChar @unique
   isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz

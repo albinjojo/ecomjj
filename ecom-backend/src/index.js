@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
@@ -9,10 +10,12 @@ BigInt.prototype.toJSON = function () {
 
 const productsRouter = require('./routes/products.route');
 const categoriesRouter = require('./routes/categories.route');
+const authRouter = require('./routes/auth.route');
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads'));
 
 const generalLimiter = rateLimit({
@@ -28,6 +31,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/auth', authRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
