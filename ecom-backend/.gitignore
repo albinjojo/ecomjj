@@ -1,7 +1,9 @@
 node_modules
 # Keep environment variables out of version control
 .env
-
+create-admin.js
 /generated/prisma
 vps access codes.txt
+cookies.txt
+test-image.jpg
 uploads/

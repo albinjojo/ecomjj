@@ -11,6 +11,7 @@ BigInt.prototype.toJSON = function () {
 const productsRouter = require('./routes/products.route');
 const categoriesRouter = require('./routes/categories.route');
 const authRouter = require('./routes/auth.route');
+const adminRouter = require('./routes/admin/admin.route');
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
@@ -32,6 +33,7 @@ app.get('/health', (req, res) => {
 app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
