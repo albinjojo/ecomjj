@@ -12,12 +12,14 @@ const productsRouter = require('./routes/products.route');
 const categoriesRouter = require('./routes/categories.route');
 const authRouter = require('./routes/auth.route');
 const adminRouter = require('./routes/admin/admin.route');
+const adminProductsRouter = require('./routes/admin/products.route');
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads'));
+
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -34,6 +36,7 @@ app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/admin/products', adminProductsRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
