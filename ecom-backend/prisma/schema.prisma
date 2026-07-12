@@ -35,14 +35,15 @@ enum OrderStatus {
 }
 
 model Category {
-  id        BigInt    @id @default(autoincrement())
-  name      String    @db.VarChar
-  slug      String    @db.VarChar @unique
-  isActive  Boolean   @default(true) @map("is_active")
-  imageUrl  String?   @map("image_url")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  products  Product[]
+  id              BigInt    @id @default(autoincrement())
+  name            String    @db.VarChar
+  slug            String    @db.VarChar @unique
+  isActive        Boolean   @default(true) @map("is_active")
+  requiresPacking Boolean   @default(false) @map("requires_packing")
+  imageUrl        String?   @map("image_url")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  products        Product[]
 
   @@map("categories")
 }
@@ -253,4 +254,15 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id])
 
   @@map("push_subscriptions")
+}
+
+model Settings {
+  id                    BigInt   @id @default(autoincrement())
+  deliveryChargeEnabled Boolean  @default(false) @map("delivery_charge_enabled")
+  deliveryChargeAmount  Decimal  @default(0) @map("delivery_charge_amount") @db.Decimal(10, 2)
+  packingChargeEnabled  Boolean  @default(false) @map("packing_charge_enabled")
+  packingChargeAmount   Decimal  @default(0) @map("packing_charge_amount") @db.Decimal(10, 2)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("settings")
 }
