@@ -15,6 +15,7 @@ const adminRouter = require('./routes/admin/admin.route');
 const adminProductsRouter = require('./routes/admin/products.route');
 const addressesRouter = require('./routes/addresses.route');
 const ordersRouter = require('./routes/orders.route');
+const adminSettingsRouter = require('./routes/admin/settings.route');
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
@@ -41,6 +42,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/admin/products', adminProductsRouter);
 app.use('/api/addresses', addressesRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/admin/settings', adminSettingsRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

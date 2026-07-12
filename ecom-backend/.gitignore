@@ -9,4 +9,6 @@ test-image.jpg
 uploads/
 create-product-test.json
 login-test.json
-
+enable-packing-test.json
+set-frozen-packing.js
+update-settings-test.json
