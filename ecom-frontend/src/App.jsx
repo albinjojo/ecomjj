@@ -1,43 +1,26 @@
-import { useState, useEffect } from 'react';
-import GoogleSignInButton from './components/GoogleSignInButton';
-import './App.css';
+import { Route, Routes } from 'react-router-dom';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import Home from './pages/Home';
+import SearchResults from './pages/SearchResults';
+import ProductDetail from './pages/ProductDetail';
+import Cart from './pages/Cart';
+import ComingSoon from './pages/ComingSoon';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function checkSession() {
-      try {
-        const res = await fetch('/api/auth/me', {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        }
-      } catch (err) {
-        console.error('Session check failed:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    checkSession();
-  }, []);
-
-  if (loading) {
-    return <div style={{ padding: '2rem' }}>Loading...</div>;
-  }
-
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>JJ Stores</h1>
-      {user ? (
-        <p>Signed in as: {user.email}</p>
-      ) : (
-        <GoogleSignInButton onSignedIn={setUser} />
-      )}
+    <div className="flex min-h-screen flex-col bg-brand-cream">
+      <Header />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/products/:slug" element={<ProductDetail />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="*" element={<ComingSoon />} />
+        </Routes>
+      </main>
+      <Footer />
     </div>
   );
 }
