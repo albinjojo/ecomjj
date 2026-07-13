@@ -14,9 +14,8 @@ function isHeic(buffer, filename) {
   const ext = (filename || '').toLowerCase();
   if (ext.endsWith('.heic') || ext.endsWith('.heif')) return true;
 
-  // Also check the file's actual magic bytes, in case the extension is missing/wrong
   const signature = buffer.toString('hex', 4, 12);
-  return signature.includes('66747970686569') || signature.includes('6674797068656963'); // 'ftyp' + heic/heif markers
+  return signature.includes('66747970686569') || signature.includes('6674797068656963');
 }
 
 async function processProductImage(inputBuffer, originalFilename = '') {
@@ -54,4 +53,29 @@ async function processProductImage(inputBuffer, originalFilename = '') {
   };
 }
 
-module.exports = { processProductImage };
+async function processBannerImage(inputBuffer, originalFilename = '') {
+  let workingBuffer = inputBuffer;
+
+  if (isHeic(inputBuffer, originalFilename)) {
+    workingBuffer = await heicConvert({
+      buffer: inputBuffer,
+      format: 'JPEG',
+      quality: 0.9,
+    });
+  }
+
+  const id = crypto.randomBytes(8).toString('hex');
+  const filename = `${id}.webp`;
+  const filePath = path.join(UPLOAD_DIR, filename);
+
+  await sharp(workingBuffer)
+    .resize({ width: 1920, withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toFile(filePath);
+
+  return {
+    imageUrl: `/uploads/products/${filename}`,
+  };
+}
+
+module.exports = { processProductImage, processBannerImage };

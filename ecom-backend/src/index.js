@@ -17,6 +17,12 @@ const addressesRouter = require('./routes/addresses.route');
 const ordersRouter = require('./routes/orders.route');
 const adminSettingsRouter = require('./routes/admin/settings.route');
 const adminOrdersRouter = require('./routes/admin/orders.route');
+const bannersRouter = require('./routes/banners.route');
+const adminBannersRouter = require('./routes/admin/banners.route');
+const pushRouter = require('./routes/push.route');
+const adminPushRouter = require('./routes/admin/push.route');
+const adminCategoriesRouter = require('./routes/admin/categories.route');
+
 
 
 const app = express();
@@ -46,6 +52,12 @@ app.use('/api/addresses', addressesRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/admin/settings', adminSettingsRouter);
 app.use('/api/admin/orders', adminOrdersRouter);
+app.use('/api/banners', bannersRouter);
+app.use('/api/admin/banners', adminBannersRouter);
+app.use('/api/push', pushRouter);
+app.use('/api/admin/push', adminPushRouter);
+app.use('/api/admin/categories', adminCategoriesRouter);
+
 
 
 const PORT = process.env.PORT || 4000;

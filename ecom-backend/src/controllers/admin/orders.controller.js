@@ -1,4 +1,5 @@
 const prisma = require('../../lib/prisma');
+const { sendPushNotification } = require('../../lib/webpush');
 
 async function getAllOrders(req, res) {
   try {
@@ -80,6 +81,29 @@ async function updateOrderStatus(req, res) {
       },
       include: { items: true, address: true },
     });
+
+    // Notify the customer their order status changed
+    if (orderStatus) {
+      const customerSubs = await prisma.pushSubscription.findMany({
+        where: { userId: order.userId },
+      });
+
+      const statusMessages = {
+        CONFIRMED: 'Your order has been confirmed!',
+        PROCESSING: 'Your order is being prepared.',
+        OUT_FOR_DELIVERY: 'Your order is out for delivery!',
+        DELIVERED: 'Your order has been delivered.',
+        CANCELLED: 'Your order has been cancelled.',
+      };
+
+      for (const sub of customerSubs) {
+        sendPushNotification(sub, {
+          title: `Order ${order.orderNumber}`,
+          body: statusMessages[orderStatus] || `Status updated to ${orderStatus}`,
+          url: `/orders/${order.id}`,
+        });
+      }
+    }
 
     res.json({ order });
   } catch (err) {

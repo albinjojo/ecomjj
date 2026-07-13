@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { generateUniqueOrderNumber } = require('../lib/orderNumber');
 const { getSettings } = require('../lib/settings');
+const { sendPushNotification } = require('../lib/webpush');
 
 async function createOrder(req, res) {
   try {
@@ -14,7 +15,6 @@ async function createOrder(req, res) {
       return res.status(400).json({ error: 'Only Cash on Delivery is available right now' });
     }
 
-    // Confirm the address genuinely belongs to this user
     const address = await prisma.address.findUnique({ where: { id: BigInt(addressId) } });
     if (!address || address.userId !== BigInt(req.userId)) {
       return res.status(404).json({ error: 'Address not found' });
@@ -99,6 +99,15 @@ async function createOrder(req, res) {
 
       return newOrder;
     });
+
+    const adminSubs = await prisma.adminPushSubscription.findMany();
+    for (const sub of adminSubs) {
+      sendPushNotification(sub, {
+        title: 'New Order Received',
+        body: `Order ${order.orderNumber} — £${order.grandTotal} (${order.items.length} item${order.items.length > 1 ? 's' : ''})`,
+        url: `/admin/orders/${order.id}`,
+      });
+    }
 
     res.status(201).json({ order });
   } catch (err) {
