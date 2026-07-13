@@ -38,6 +38,37 @@ async function getProducts(req, res) {
   }
 }
 
+async function searchProducts(req, res) {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim() === '') {
+      return res.json([]);
+    }
+
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        name: { contains: q, mode: 'insensitive' },
+      },
+      include: {
+        category: true,
+        images: { orderBy: { displayOrder: 'asc' } },
+        variants: {
+          where: { isActive: true },
+          orderBy: { price: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(products);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to search products' });
+  }
+}
+
 async function getProductBySlug(req, res) {
   try {
     const { slug } = req.params;
@@ -65,4 +96,4 @@ async function getProductBySlug(req, res) {
   }
 }
 
-module.exports = { getProducts, getProductBySlug };
+module.exports = { getProducts, searchProducts, getProductBySlug };
