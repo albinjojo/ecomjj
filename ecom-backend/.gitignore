@@ -12,3 +12,4 @@ login-test.json
 enable-packing-test.json
 set-frozen-packing.js
 update-settings-test.json
+update-order-status-test.json
