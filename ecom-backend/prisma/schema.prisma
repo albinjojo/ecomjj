@@ -78,6 +78,8 @@ model Admin {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
+  pushSubs AdminPushSubscription[]
+
   @@map("admins")
 }
 
@@ -89,6 +91,7 @@ model Product {
   description  String?  @db.Text
   thumbnailUrl String?  @map("thumbnail_url") @db.Text
   isActive     Boolean  @default(true) @map("is_active")
+  isFeatured   Boolean  @default(false) @map("is_featured")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -265,4 +268,17 @@ model Settings {
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("settings")
+}
+
+model AdminPushSubscription {
+  id        BigInt   @id @default(autoincrement())
+  adminId   BigInt   @map("admin_id")
+  endpoint  String   @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  admin Admin @relation(fields: [adminId], references: [id])
+
+  @@map("admin_push_subscriptions")
 }

@@ -1,15 +1,14 @@
 node_modules
-# Keep environment variables out of version control
 .env
-create-admin.js
-/generated/prisma
-vps access codes.txt
-cookies.txt
-test-image.jpg
 uploads/
-create-product-test.json
+test-image.jpg
+cookies.txt
+create-admin.js
 login-test.json
+create-product-test.json
+update-settings-test.json
 enable-packing-test.json
 set-frozen-packing.js
-update-settings-test.json
 update-order-status-test.json
+mark-featured-test.json
+check-featured.js

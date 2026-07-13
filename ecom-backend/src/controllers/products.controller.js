@@ -2,8 +2,24 @@ const prisma = require('../lib/prisma');
 
 async function getProducts(req, res) {
   try {
+    const { featured, onOffer } = req.query;
+    const now = new Date();
+
     const products = await prisma.product.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(featured === 'true' && { isFeatured: true }),
+        ...(onOffer === 'true' && {
+          variants: {
+            some: {
+              offerEnabled: true,
+              offerPrice: { not: null },
+              OR: [{ offerStartDate: null }, { offerStartDate: { lte: now } }],
+              AND: [{ OR: [{ offerEndDate: null }, { offerEndDate: { gte: now } }] }],
+            },
+          },
+        }),
+      },
       include: {
         category: true,
         images: { orderBy: { displayOrder: 'asc' } },

@@ -4,7 +4,7 @@ const { processProductImage } = require('../../lib/imageProcessor');
 
 async function createProduct(req, res) {
   try {
-    const { name, categoryId, description, variants } = req.body;
+    const { name, categoryId, description, isFeatured, variants } = req.body;
 
     if (!name || !categoryId || !variants || variants.length === 0) {
       return res.status(400).json({ error: 'Name, category, and at least one variant are required' });
@@ -18,6 +18,7 @@ async function createProduct(req, res) {
         slug,
         categoryId: BigInt(categoryId),
         description: description || null,
+        isFeatured: isFeatured || false,
         variants: {
           create: variants.map((v) => ({
             variantName: v.variantName,
@@ -44,14 +45,13 @@ async function createProduct(req, res) {
 async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { name, categoryId, description, isActive, variants } = req.body;
+    const { name, categoryId, description, isActive, isFeatured, variants } = req.body;
 
     const existing = await prisma.product.findUnique({ where: { id: BigInt(id) } });
     if (!existing) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // If name changed, regenerate slug; otherwise keep existing
     let slug = existing.slug;
     if (name && name !== existing.name) {
       slug = await generateUniqueSlug(prisma, name);
@@ -62,9 +62,9 @@ async function updateProduct(req, res) {
       ...(categoryId && { categoryId: BigInt(categoryId) }),
       ...(description !== undefined && { description }),
       ...(isActive !== undefined && { isActive }),
+      ...(isFeatured !== undefined && { isFeatured }),
     };
 
-    // Replace variants entirely if a new array is provided
     if (variants) {
       await prisma.productVariant.deleteMany({ where: { productId: BigInt(id) } });
       updateData.variants = {
@@ -119,7 +119,6 @@ async function uploadProductImage(req, res) {
       },
     });
 
-    // If this is the first image, also set it as the product thumbnail
     if (currentCount === 0) {
       await prisma.product.update({
         where: { id: BigInt(id) },
@@ -134,4 +133,4 @@ async function uploadProductImage(req, res) {
   }
 }
 
-module.exports = { createProduct, updateProduct, uploadProductImage };   
+module.exports = { createProduct, updateProduct, uploadProductImage };
