@@ -13,3 +13,4 @@ update-order-status-test.json
 mark-featured-test.json
 check-featured.js
 create-category-test.json
+check-admin-password.js
