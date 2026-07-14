@@ -56,3 +56,12 @@ export function getImageUrl(path) {
   if (!path) return null;
   return path;
 }
+
+export const queryKeys = {
+  banners: ['banners'],
+  categories: ['categories'],
+  products: (params = {}) => ['products', params],
+  productBySlug: (slug) => ['products', 'detail', slug],
+  search: (q) => ['products', 'search', q],
+  me: ['auth', 'me'],
+};

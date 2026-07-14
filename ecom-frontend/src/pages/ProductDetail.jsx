@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { getProductBySlug, getImageUrl } from '../lib/api';
+import { getProductBySlug, getImageUrl, queryKeys } from '../lib/api';
 import { useCart } from '../hooks/useCart';
 import { isVariantOnOffer, getEffectivePrice, getDiscountPercent } from '../lib/pricing';
 
@@ -240,31 +241,17 @@ function ProductDetailView({ product }) {
 
 function ProductDetail() {
   const { slug } = useParams();
-  const [result, setResult] = useState({ slug: null, product: null, notFound: false });
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: queryKeys.productBySlug(slug),
+    queryFn: () => getProductBySlug(slug),
+  });
 
-    getProductBySlug(slug)
-      .then((product) => {
-        if (!cancelled) setResult({ slug, product, notFound: false });
-      })
-      .catch((err) => {
-        if (!cancelled) setResult({ slug, product: null, notFound: err.status === 404 });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
-
-  const loading = result.slug !== slug;
-
-  if (loading) {
+  if (isLoading) {
     return <div className="mx-auto max-w-7xl px-4 py-16 text-center text-gray-500">Loading...</div>;
   }
 
-  if (result.notFound || !result.product) {
+  if (error || !product) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center">
         <h1 className="text-xl font-bold text-gray-900">Product not found</h1>
@@ -281,7 +268,7 @@ function ProductDetail() {
     );
   }
 
-  return <ProductDetailView key={result.product.id} product={result.product} />;
+  return <ProductDetailView key={product.id} product={product} />;
 }
 
 export default ProductDetail;

@@ -1,18 +1,39 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { getBanners, getCategories, getProducts, getImageUrl } from '../lib/api';
+import { getBanners, getCategories, getProducts, getImageUrl, queryKeys } from '../lib/api';
 import ProductGrid from '../components/ProductGrid';
 
+function BannerArrow({ direction, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={direction === 'prev' ? 'Previous banner' : 'Next banner'}
+      className={`absolute top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-md transition-colors hover:bg-white ${
+        direction === 'prev' ? 'left-3' : 'right-3'
+      }`}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        {direction === 'prev' ? (
+          <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
 function BannerCarousel() {
-  const [banners, setBanners] = useState([]);
+  const { data } = useQuery({
+    queryKey: queryKeys.banners,
+    queryFn: () => getBanners(),
+  });
+  const banners = data?.banners || [];
+
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    getBanners()
-      .then((data) => setBanners(data.banners || []))
-      .catch(() => setBanners([]));
-  }, []);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -20,48 +41,63 @@ function BannerCarousel() {
       setIndex((i) => (i + 1) % banners.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, [banners]);
+  }, [banners.length]);
 
   if (banners.length === 0) return null;
 
+  function goToPrev() {
+    setIndex((i) => (i - 1 + banners.length) % banners.length);
+  }
+
+  function goToNext() {
+    setIndex((i) => (i + 1) % banners.length);
+  }
+
   return (
-    <div
-      onClick={() => navigate('/offers')}
-      className="relative aspect-[16/6] w-full cursor-pointer overflow-hidden rounded-2xl bg-brand-pink sm:aspect-[16/5]"
-    >
-      {banners.map((banner, i) => (
-        <img
-          key={banner.id}
-          src={getImageUrl(banner.imageUrl)}
-          alt={banner.title}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-            i === index ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      ))}
+    <div className="relative aspect-[16/6] w-full overflow-hidden bg-brand-pink sm:aspect-[16/5]">
+      <div
+        className="flex h-full transition-transform duration-500 ease-in-out"
+        style={{ transform: `translateX(-${index * 100}%)` }}
+      >
+        {banners.map((banner) => (
+          <div
+            key={banner.id}
+            onClick={() => navigate('/offers')}
+            className="h-full w-full shrink-0 cursor-pointer"
+          >
+            <img
+              src={getImageUrl(banner.imageUrl)}
+              alt={banner.title}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
 
       {banners.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-          {banners.map((banner, i) => (
-            <span
-              key={banner.id}
-              className={`h-1.5 w-1.5 rounded-full ${i === index ? 'bg-white' : 'bg-white/50'}`}
-            />
-          ))}
-        </div>
+        <>
+          <BannerArrow direction="prev" onClick={goToPrev} />
+          <BannerArrow direction="next" onClick={goToNext} />
+
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {banners.map((banner, i) => (
+              <span
+                key={banner.id}
+                className={`h-1.5 w-1.5 rounded-full ${i === index ? 'bg-white' : 'bg-white/50'}`}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
 function CategoryStrip() {
-  const [categories, setCategories] = useState([]);
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch(() => setCategories([]));
-  }, []);
+  const { data: categories = [] } = useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: () => getCategories(),
+  });
 
   if (categories.length === 0) return null;
 
@@ -128,30 +164,30 @@ function TrustRow() {
 }
 
 function Home() {
-  const [offerProducts, setOfferProducts] = useState([]);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-
-  useEffect(() => {
-    getProducts({ onOffer: 'true' })
-      .then(setOfferProducts)
-      .catch(() => setOfferProducts([]));
-    getProducts({ featured: 'true' })
-      .then(setFeaturedProducts)
-      .catch(() => setFeaturedProducts([]));
-    getProducts()
-      .then(setAllProducts)
-      .catch(() => setAllProducts([]));
-  }, []);
+  const { data: offerProducts = [] } = useQuery({
+    queryKey: queryKeys.products({ onOffer: 'true' }),
+    queryFn: () => getProducts({ onOffer: 'true' }),
+  });
+  const { data: featuredProducts = [] } = useQuery({
+    queryKey: queryKeys.products({ featured: 'true' }),
+    queryFn: () => getProducts({ featured: 'true' }),
+  });
+  const { data: allProducts = [] } = useQuery({
+    queryKey: queryKeys.products({}),
+    queryFn: () => getProducts(),
+  });
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-6">
+    <div className="flex flex-col gap-10 py-6">
       <BannerCarousel />
-      <CategoryStrip />
-      <Section title="Limited Offers" viewAllHref="/offers" products={offerProducts} />
-      <Section title="Featured Products" viewAllHref="/featured" products={featuredProducts} />
-      <Section title="All Products" viewAllHref="/products" products={allProducts.slice(0, 12)} />
-      <TrustRow />
+
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4">
+        <CategoryStrip />
+        <Section title="Limited Offers" viewAllHref="/offers" products={offerProducts} />
+        <Section title="Featured Products" viewAllHref="/featured" products={featuredProducts} />
+        <Section title="All Products" viewAllHref="/products" products={allProducts.slice(0, 12)} />
+        <TrustRow />
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useState } from 'react';
 import { googleSignIn } from '../lib/api';
 
-function GoogleSignInButton({ onSignedIn }) {
+function GoogleSignInButton({ onSignedIn, compact = false }) {
   const [error, setError] = useState(null);
 
   async function handleSuccess(credentialResponse) {
@@ -20,6 +20,7 @@ function GoogleSignInButton({ onSignedIn }) {
       <GoogleLogin
         onSuccess={handleSuccess}
         onError={() => setError('Google sign-in was cancelled or failed.')}
+        {...(compact ? { type: 'icon' } : {})}
       />
       {error && <p className="mt-1 text-xs text-brand-red">{error}</p>}
     </div>
