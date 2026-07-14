@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
-import { getCategories, queryKeys } from '../lib/api';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { getCategories, searchProducts, getImageUrl, queryKeys } from '../lib/api';
+import { getEffectivePrice } from '../lib/pricing';
 import GoogleSignInButton from './GoogleSignInButton';
 
 function SearchIcon() {
@@ -39,12 +41,137 @@ function WhatsAppIcon() {
   );
 }
 
+const SEARCH_DEBOUNCE_MS = 300;
+const MIN_SEARCH_LENGTH = 2;
+const MAX_SUGGESTIONS = 5;
+
+function SearchBox({ variant = 'pill', autoFocus = false, onNavigate, className = '' }) {
+  const navigate = useNavigate();
+  const containerRef = useRef(null);
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+
+  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  const trimmed = query.trim();
+  const debouncedTrimmed = debouncedQuery.trim();
+  const searchEnabled = debouncedTrimmed.length >= MIN_SEARCH_LENGTH;
+  const isDebouncing = trimmed !== debouncedTrimmed;
+
+  const { data: results = [], isLoading } = useQuery({
+    queryKey: queryKeys.search(debouncedTrimmed),
+    queryFn: () => searchProducts(debouncedTrimmed),
+    enabled: searchEnabled,
+  });
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setFocused(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const showDropdown = focused && trimmed.length >= MIN_SEARCH_LENGTH;
+
+  function goToResults(term) {
+    setFocused(false);
+    onNavigate?.();
+    navigate(`/search?q=${encodeURIComponent(term)}`);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (trimmed) goToResults(trimmed);
+  }
+
+  function handleSuggestionClick(slug) {
+    setFocused(false);
+    onNavigate?.();
+    navigate(`/products/${slug}`);
+  }
+
+  const inputClass =
+    variant === 'joined'
+      ? 'w-full min-w-0 rounded-l-full border border-r-0 border-gray-200 bg-brand-cream px-4 py-2 text-sm focus:outline-none'
+      : 'min-w-0 flex-1 rounded-full border border-gray-200 bg-brand-cream px-4 py-2 text-sm focus:outline-none';
+
+  const buttonClass =
+    variant === 'joined'
+      ? 'shrink-0 rounded-r-full bg-brand-red px-5 py-2 text-sm font-semibold text-white hover:bg-brand-red-dark'
+      : 'shrink-0 rounded-full bg-brand-red px-4 py-2 text-sm font-semibold text-white hover:bg-brand-red-dark';
+
+  return (
+    <div ref={containerRef} className={`relative min-w-0 flex-1 ${className}`}>
+      <form onSubmit={handleSubmit} className="flex w-full">
+        <input
+          autoFocus={autoFocus}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          placeholder="Search for products..."
+          className={inputClass}
+        />
+        <button type="submit" className={buttonClass}>
+          {variant === 'joined' ? 'Search' : 'Go'}
+        </button>
+      </form>
+
+      {showDropdown && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-black/5 bg-white shadow-lg">
+          {isDebouncing || isLoading ? (
+            <p className="px-4 py-3 text-sm text-gray-400">Searching...</p>
+          ) : results.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-gray-400">No results found</p>
+          ) : (
+            <>
+              {results.slice(0, MAX_SUGGESTIONS).map((product) => {
+                const variantData = product.variants?.[0];
+                const price = variantData ? getEffectivePrice(variantData) : null;
+
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => handleSuggestionClick(product.slug)}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-brand-pink"
+                  >
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-brand-pink">
+                      {product.thumbnailUrl && (
+                        <img
+                          src={getImageUrl(product.thumbnailUrl)}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <span className="min-w-0 flex-1 truncate text-sm text-gray-800">{product.name}</span>
+                    {price != null && (
+                      <span className="shrink-0 text-sm font-semibold text-gray-900">£{price.toFixed(2)}</span>
+                    )}
+                  </button>
+                );
+              })}
+
+              {results.length > MAX_SUGGESTIONS && (
+                <button
+                  onClick={() => goToResults(debouncedTrimmed)}
+                  className="block w-full border-t border-gray-100 px-4 py-2 text-left text-sm font-semibold text-brand-red hover:bg-brand-pink"
+                >
+                  See all results for &ldquo;{debouncedTrimmed}&rdquo;
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const WHATSAPP_NUMBER = '44800123456'; // placeholder UK number — replace with the real business number
 
 function MobileDrawer({ open, onClose }) {
-  const navigate = useNavigate();
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [query, setQuery] = useState('');
 
   const { data: categories = [] } = useQuery({
     queryKey: queryKeys.categories,
@@ -58,14 +185,6 @@ function MobileDrawer({ open, onClose }) {
       document.body.style.overflow = '';
     };
   }, [open]);
-
-  function handleSearch(e) {
-    e.preventDefault();
-    if (query.trim()) {
-      onClose();
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-    }
-  }
 
   return (
     <div className={`fixed inset-0 z-50 md:hidden ${open ? '' : 'pointer-events-none'}`}>
@@ -92,21 +211,9 @@ function MobileDrawer({ open, onClose }) {
           </button>
         </div>
 
-        <form onSubmit={handleSearch} className="flex items-center gap-2 border-b border-gray-100 px-4 py-4">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for products..."
-            className="min-w-0 flex-1 rounded-full border border-gray-200 bg-brand-cream px-4 py-2 text-sm focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="shrink-0 rounded-full bg-brand-red px-4 py-2 text-sm font-semibold text-white hover:bg-brand-red-dark"
-          >
-            Go
-          </button>
-        </form>
+        <div className="border-b border-gray-100 px-4 py-4">
+          <SearchBox variant="pill" onNavigate={onClose} />
+        </div>
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
           <div>
@@ -303,19 +410,9 @@ function AccountMenu() {
 }
 
 function Header() {
-  const navigate = useNavigate();
   const { totalItems, totalPrice } = useCart();
-  const [query, setQuery] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  function handleSearch(e) {
-    e.preventDefault();
-    if (query.trim()) {
-      setMobileSearchOpen(false);
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-    }
-  }
 
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm">
@@ -326,7 +423,7 @@ function Header() {
 
       <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 md:gap-3">
         {mobileSearchOpen ? (
-          <form onSubmit={handleSearch} className="flex w-full items-center gap-2 md:hidden">
+          <div className="flex w-full items-center gap-2 md:hidden">
             <button
               type="button"
               onClick={() => setMobileSearchOpen(false)}
@@ -335,21 +432,8 @@ function Header() {
             >
               <CloseIcon />
             </button>
-            <input
-              autoFocus
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for products..."
-              className="min-w-0 flex-1 rounded-full border border-gray-200 bg-brand-cream px-4 py-2 text-sm focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="shrink-0 rounded-full bg-brand-red px-4 py-2 text-sm font-semibold text-white hover:bg-brand-red-dark"
-            >
-              Go
-            </button>
-          </form>
+            <SearchBox variant="pill" autoFocus onNavigate={() => setMobileSearchOpen(false)} />
+          </div>
         ) : (
           <>
             <button
@@ -364,21 +448,7 @@ function Header() {
               JJ Stores
             </Link>
 
-            <form onSubmit={handleSearch} className="hidden min-w-0 flex-1 md:flex">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for products..."
-                className="w-full min-w-0 rounded-l-full border border-r-0 border-gray-200 bg-brand-cream px-4 py-2 text-sm focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="shrink-0 rounded-r-full bg-brand-red px-5 py-2 text-sm font-semibold text-white hover:bg-brand-red-dark"
-              >
-                Search
-              </button>
-            </form>
+            <SearchBox variant="joined" className="hidden md:flex" />
 
             <button
               onClick={() => setMobileSearchOpen(true)}
