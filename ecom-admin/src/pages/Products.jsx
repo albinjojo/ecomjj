@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 
 const UNITS = ['g', 'kg', 'ml', 'L', 'pcs', 'pack', 'box'];
+const MAX_IMAGES = 4;
+
+function thumbFor(imageUrl) {
+  return imageUrl.replace('.webp', '-thumb.webp');
+}
 
 function Products() {
   const [products, setProducts] = useState([]);
@@ -117,6 +122,7 @@ function Products() {
           categories={categories}
           onClose={handleFormClose}
           onSaved={handleSaved}
+          onImagesChanged={fetchData}
         />
       )}
     </div>
@@ -211,7 +217,7 @@ function parseVariantName(variantName) {
   return { quantity: '', unit: 'g' };
 }
 
-function ProductFormModal({ product, categories, onClose, onSaved }) {
+function ProductFormModal({ product, categories, onClose, onSaved, onImagesChanged }) {
   const [name, setName] = useState(product?.name || '');
   const [categoryId, setCategoryId] = useState(product?.categoryId || categories[0]?.id || '');
   const [description, setDescription] = useState(product?.description || '');
@@ -234,9 +240,63 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
         })
       : [emptyVariant()]
   );
-  const [imageFile, setImageFile] = useState(null);
+  const [existingImages, setExistingImages] = useState(product?.images || []);
+  const [mainImageUrl, setMainImageUrl] = useState(product?.thumbnailUrl || null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imageActionError, setImageActionError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  const remainingImageSlots = MAX_IMAGES - existingImages.length;
+
+  function handleImageFilesChange(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length > remainingImageSlots) {
+      setImageActionError(`You can only have up to ${MAX_IMAGES} images per product. Only the first ${remainingImageSlots} selected file(s) will be uploaded.`);
+      setImageFiles(files.slice(0, remainingImageSlots));
+    } else {
+      setImageActionError(null);
+      setImageFiles(files);
+    }
+  }
+
+  async function handleDeleteImage(imageId) {
+    setImageActionError(null);
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}/images/${imageId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete image');
+
+      setExistingImages((prev) => {
+        const deleted = prev.find((img) => img.id === imageId);
+        const next = prev.filter((img) => img.id !== imageId);
+        if (deleted && thumbFor(deleted.imageUrl) === mainImageUrl) {
+          setMainImageUrl(next[0] ? thumbFor(next[0].imageUrl) : null);
+        }
+        return next;
+      });
+      onImagesChanged?.();
+    } catch (err) {
+      setImageActionError(err.message);
+    }
+  }
+
+  async function handleSetMainImage(imageId, imageUrl) {
+    setImageActionError(null);
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}/images/${imageId}/main`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to set main image');
+      setMainImageUrl(thumbFor(imageUrl));
+      onImagesChanged?.();
+    } catch (err) {
+      setImageActionError(err.message);
+    }
+  }
 
   function updateVariant(index, field, value) {
     setVariants((prev) =>
@@ -310,9 +370,9 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
         productId = data.product.id;
       }
 
-      if (imageFile && productId) {
+      if (imageFiles.length && productId) {
         const formData = new FormData();
-        formData.append('image', imageFile);
+        imageFiles.forEach((file) => formData.append('images', file));
         const imgRes = await fetch(`/api/admin/products/${productId}/images`, {
           method: 'POST',
           credentials: 'include',
@@ -368,13 +428,63 @@ function ProductFormModal({ product, categories, onClose, onSaved }) {
           rows={2}
         />
 
-        <label className="block text-sm font-medium mb-1">Product Image</label>
+        {product && existingImages.length > 0 && (
+          <div className="mb-3">
+            <label className="block text-sm font-medium mb-1">
+              Current Images ({existingImages.length}/{MAX_IMAGES})
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {existingImages.map((img) => {
+                const thumbUrl = thumbFor(img.imageUrl);
+                const isMain = thumbUrl === mainImageUrl;
+                return (
+                  <div key={img.id} className="relative w-20 h-20 border rounded overflow-hidden">
+                    <img
+                      src={`http://localhost:4000${thumbUrl}`}
+                      alt="Product"
+                      className="w-full h-full object-cover"
+                    />
+                    {isMain && (
+                      <span className="absolute top-0 left-0 bg-yellow-400 text-[10px] px-1 rounded-br">
+                        Main
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleSetMainImage(img.id, img.imageUrl)}
+                      disabled={isMain}
+                      title="Set as main"
+                      className="absolute bottom-0 left-0 bg-black/60 text-white text-xs px-1 leading-4 disabled:opacity-40"
+                    >
+                      ★
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(img.id)}
+                      title="Delete image"
+                      className="absolute top-0 right-0 bg-black/60 text-white text-xs w-5 h-5 flex items-center justify-center hover:bg-red-600"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <label className="block text-sm font-medium mb-1">
+          {product ? 'Add More Images' : 'Product Images'} ({existingImages.length + imageFiles.length}/{MAX_IMAGES})
+        </label>
         <input
           type="file"
           accept="image/*,.heic,.heif"
-          onChange={(e) => setImageFile(e.target.files[0])}
+          multiple
+          disabled={remainingImageSlots <= 0}
+          onChange={handleImageFilesChange}
           className="w-full mb-3"
         />
+        {imageActionError && <p className="text-red-600 text-xs -mt-2 mb-3">{imageActionError}</p>}
 
         <div className="flex gap-4 mb-4">
           {product && (

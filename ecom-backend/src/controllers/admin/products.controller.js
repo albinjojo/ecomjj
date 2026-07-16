@@ -94,12 +94,39 @@ async function updateProduct(req, res) {
   }
 }
 
+async function deleteProduct(req, res) {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.findUnique({ where: { id: BigInt(id) } });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const orderItemCount = await prisma.orderItem.count({
+      where: { productId: BigInt(id) },
+    });
+
+    if (orderItemCount > 0) {
+      return res.status(400).json({ error: 'This product has existing orders and cannot be deleted. Deactivate it instead.' });
+    }
+
+    await prisma.product.delete({ where: { id: BigInt(id) } });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+}
+
 async function uploadProductImage(req, res) {
   try {
     const { id } = req.params;
 
-    if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No image files provided' });
     }
 
     const product = await prisma.product.findUnique({ where: { id: BigInt(id) } });
@@ -107,30 +134,89 @@ async function uploadProductImage(req, res) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const { imageUrl, thumbnailUrl } = await processProductImage(req.file.buffer, req.file.originalname);
+    let currentCount = await prisma.productImage.count({ where: { productId: BigInt(id) } });
+    const createdImages = [];
 
-    const currentCount = await prisma.productImage.count({ where: { productId: BigInt(id) } });
+    for (const file of req.files) {
+      const { imageUrl, thumbnailUrl } = await processProductImage(file.buffer, file.originalname);
 
-    const image = await prisma.productImage.create({
-      data: {
-        productId: BigInt(id),
-        imageUrl,
-        displayOrder: currentCount,
-      },
-    });
-
-    if (currentCount === 0) {
-      await prisma.product.update({
-        where: { id: BigInt(id) },
-        data: { thumbnailUrl },
+      const image = await prisma.productImage.create({
+        data: {
+          productId: BigInt(id),
+          imageUrl,
+          displayOrder: currentCount,
+        },
       });
+      createdImages.push(image);
+
+      if (currentCount === 0) {
+        await prisma.product.update({
+          where: { id: BigInt(id) },
+          data: { thumbnailUrl },
+        });
+      }
+
+      currentCount++;
     }
 
-    res.status(201).json({ image });
+    res.status(201).json({ images: createdImages });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to upload image' });
+    res.status(500).json({ error: 'Failed to upload images' });
   }
 }
 
-module.exports = { createProduct, updateProduct, uploadProductImage };
+async function deleteProductImage(req, res) {
+  try {
+    const { id, imageId } = req.params;
+
+    const image = await prisma.productImage.findUnique({ where: { id: BigInt(imageId) } });
+    if (!image || image.productId !== BigInt(id)) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const product = await prisma.product.findUnique({ where: { id: BigInt(id) } });
+
+    await prisma.productImage.delete({ where: { id: BigInt(imageId) } });
+
+    if (product.thumbnailUrl === image.imageUrl) {
+      const remaining = await prisma.productImage.findFirst({
+        where: { productId: BigInt(id) },
+        orderBy: { displayOrder: 'asc' },
+      });
+
+      await prisma.product.update({
+        where: { id: BigInt(id) },
+        data: { thumbnailUrl: remaining ? remaining.imageUrl.replace('.webp', '-thumb.webp') : null },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+}
+
+async function setMainImage(req, res) {
+  try {
+    const { id, imageId } = req.params;
+
+    const image = await prisma.productImage.findUnique({ where: { id: BigInt(imageId) } });
+    if (!image || image.productId !== BigInt(id)) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    await prisma.product.update({
+      where: { id: BigInt(id) },
+      data: { thumbnailUrl: image.imageUrl.replace('.webp', '-thumb.webp') },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to set main image' });
+  }
+}
+
+module.exports = { createProduct, updateProduct, deleteProduct, uploadProductImage, deleteProductImage, setMainImage };
