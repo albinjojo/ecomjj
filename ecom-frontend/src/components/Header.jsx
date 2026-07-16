@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { getCategories, searchProducts, getImageUrl, queryKeys } from '../lib/api';
 import { getEffectivePrice } from '../lib/pricing';
 import GoogleSignInButton from './GoogleSignInButton';
@@ -63,13 +64,7 @@ function SearchBox({ variant = 'pill', autoFocus = false, onNavigate, className 
     enabled: searchEnabled,
   });
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setFocused(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useOutsideClick(containerRef, () => setFocused(false));
 
   const showDropdown = focused && trimmed.length >= MIN_SEARCH_LENGTH;
 
@@ -298,13 +293,7 @@ function CategoriesDropdown() {
     queryFn: () => getCategories(),
   });
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useOutsideClick(ref, () => setOpen(false));
 
   return (
     <div ref={ref} className="relative shrink-0">
@@ -346,13 +335,7 @@ function AccountMenu() {
   const ref = useRef(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useOutsideClick(ref, () => setOpen(false));
 
   if (!user) {
     return (
@@ -489,7 +472,7 @@ function Header() {
         )}
       </div>
 
-      <nav className="scrollbar-none mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 pb-3">
+      <nav className="mx-auto flex max-w-7xl items-center gap-2 px-4 pb-3">
         <CategoriesDropdown />
         <Link
           to="/offers"

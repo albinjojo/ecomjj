@@ -57,6 +57,21 @@ export function getImageUrl(path) {
   return path;
 }
 
+export function getAddresses() {
+  return request('/addresses');
+}
+
+export function createAddress(data) {
+  return request('/addresses', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAddress(id) {
+  return request(`/addresses/${id}`, { method: 'DELETE' });
+}
+
 export const queryKeys = {
   banners: ['banners'],
   categories: ['categories'],
@@ -64,4 +79,5 @@ export const queryKeys = {
   productBySlug: (slug) => ['products', 'detail', slug],
   search: (q) => ['products', 'search', q],
   me: ['auth', 'me'],
+  addresses: ['addresses'],
 };
