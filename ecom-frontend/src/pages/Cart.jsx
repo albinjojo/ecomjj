@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
+import { useAuth } from '../hooks/useAuth';
 import { getEffectivePrice, isVariantOnOffer } from '../lib/pricing';
 import { getImageUrl } from '../lib/api';
+import SignInModal from '../components/SignInModal';
 
 function CartItemRow({ item, updateQuantity, removeItem }) {
   const onOffer = isVariantOnOffer(item);
@@ -64,7 +67,23 @@ function CartItemRow({ item, updateQuantity, removeItem }) {
 
 function Cart() {
   const { items, updateQuantity, removeItem, totalPrice } = useCart();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  const [showSignIn, setShowSignIn] = useState(false);
+
+  function handleCheckoutClick() {
+    if (user) {
+      navigate('/checkout');
+    } else {
+      setShowSignIn(true);
+    }
+  }
+
+  function handleSignedIn(signedInUser) {
+    setUser(signedInUser);
+    setShowSignIn(false);
+    navigate('/checkout');
+  }
 
   if (items.length === 0) {
     return (
@@ -111,7 +130,7 @@ function Cart() {
             </p>
 
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={handleCheckoutClick}
               disabled={items.length === 0}
               className={`w-full rounded-full py-3 text-sm font-semibold transition-colors ${
                 items.length === 0
@@ -124,6 +143,10 @@ function Cart() {
           </div>
         </div>
       </div>
+
+      {showSignIn && (
+        <SignInModal onClose={() => setShowSignIn(false)} onSignedIn={handleSignedIn} />
+      )}
     </div>
   );
 }

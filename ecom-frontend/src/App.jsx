@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
 import ComingSoon from './pages/ComingSoon';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="*" element={<ComingSoon />} />
         </Routes>
       </main>
