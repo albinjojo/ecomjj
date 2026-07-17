@@ -149,4 +149,44 @@ async function getOrderById(req, res) {
   }
 }
 
-module.exports = { createOrder, getMyOrders, getOrderById };
+async function cancelOrder(req, res) {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { id: BigInt(id) },
+      include: { items: true },
+    });
+
+    if (!order || order.userId !== BigInt(req.userId)) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    if (order.orderStatus !== 'PENDING') {
+      return res.status(400).json({ error: 'This order can no longer be cancelled' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of order.items) {
+        if (item.productVariantId) {
+          await tx.productVariant.update({
+            where: { id: item.productVariantId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
+      }
+
+      await tx.order.update({
+        where: { id: BigInt(id) },
+        data: { orderStatus: 'CANCELLED' },
+      });
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to cancel order' });
+  }
+}
+
+module.exports = { createOrder, getMyOrders, getOrderById, cancelOrder };

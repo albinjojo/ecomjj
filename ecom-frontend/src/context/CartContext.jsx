@@ -44,12 +44,16 @@ export function CartProvider({ children }) {
     setItems((prev) => prev.map((i) => (i.variantId === variantId ? { ...i, quantity } : i)));
   }
 
+  function clearCart() {
+    setItems([]);
+  }
+
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + getEffectivePrice(i) * i.quantity, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, totalItems, totalPrice }}
+      value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}
     >
       {children}
     </CartContext.Provider>

@@ -73,6 +73,10 @@ async function updateOrderStatus(req, res) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    if (existing.orderStatus === 'CANCELLED') {
+      return res.status(400).json({ error: 'This order has been cancelled and its status can no longer be changed.' });
+    }
+
     const order = await prisma.order.update({
       where: { id: BigInt(id) },
       data: {

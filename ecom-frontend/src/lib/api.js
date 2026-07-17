@@ -8,7 +8,14 @@ async function request(path, options = {}) {
   });
 
   if (!res.ok) {
-    const error = new Error(`Request failed: ${path}`);
+    let message = `Request failed: ${path}`;
+    try {
+      const data = await res.json();
+      if (data?.error) message = data.error;
+    } catch {
+      // response body wasn't JSON; fall back to the generic message
+    }
+    const error = new Error(message);
     error.status = res.status;
     throw error;
   }
@@ -72,6 +79,21 @@ export function deleteAddress(id) {
   return request(`/addresses/${id}`, { method: 'DELETE' });
 }
 
+export function createOrder(data) {
+  return request('/orders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getOrders() {
+  return request('/orders');
+}
+
+export function cancelOrder(orderId) {
+  return request(`/orders/${orderId}/cancel`, { method: 'POST' });
+}
+
 export const queryKeys = {
   banners: ['banners'],
   categories: ['categories'],
@@ -80,4 +102,5 @@ export const queryKeys = {
   search: (q) => ['products', 'search', q],
   me: ['auth', 'me'],
   addresses: ['addresses'],
+  orders: ['orders'],
 };

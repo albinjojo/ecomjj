@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { getBanners, getCategories, getProducts, getImageUrl, queryKeys } from '../lib/api';
 import ProductGrid from '../components/ProductGrid';
+import ProductCard from '../components/ProductCard';
 
 function BannerArrow({ direction, onClick }) {
   return (
@@ -141,6 +142,71 @@ function Section({ title, viewAllHref, products }) {
   );
 }
 
+function RowArrow({ direction, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={direction === 'prev' ? 'Scroll left' : 'Scroll right'}
+      className={`absolute top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-700 shadow-md transition-colors hover:bg-brand-pink md:flex ${
+        direction === 'prev' ? 'left-2' : 'right-2'
+      }`}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        {direction === 'prev' ? (
+          <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
+function ScrollableProductRow({ products }) {
+  const scrollRef = useRef(null);
+
+  function scrollByCard(direction) {
+    const el = scrollRef.current;
+    if (!el) return;
+    const firstCard = el.firstElementChild;
+    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : el.clientWidth * 0.8;
+    el.scrollBy({ left: direction * (cardWidth + 12), behavior: 'smooth' });
+  }
+
+  return (
+    <div className="relative">
+      {products.length > 1 && <RowArrow direction="prev" onClick={() => scrollByCard(-1)} />}
+
+      <div ref={scrollRef} className="scrollbar-none flex gap-3 overflow-x-auto">
+        {products.map((product) => (
+          <div key={product.id} className="w-[45%] shrink-0 sm:w-[32%] md:w-[24%] lg:w-[19%]">
+            <ProductCard product={product} />
+          </div>
+        ))}
+      </div>
+
+      {products.length > 1 && <RowArrow direction="next" onClick={() => scrollByCard(1)} />}
+    </div>
+  );
+}
+
+function ScrollSection({ title, viewAllHref, products }) {
+  if (products.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xl font-extrabold text-gray-900">{title}</h2>
+        <Link to={viewAllHref} className="text-sm font-semibold text-brand-red hover:underline">
+          View all →
+        </Link>
+      </div>
+      <ScrollableProductRow products={products} />
+    </section>
+  );
+}
+
 const TRUST_ITEMS = [
   { icon: '💷', title: 'Cash on Delivery', text: 'Pay in cash when your order arrives.' },
   { icon: '🚚', title: 'Local Delivery', text: 'Fast delivery across our local area.' },
@@ -183,8 +249,8 @@ function Home() {
 
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4">
         <CategoryStrip />
-        <Section title="Limited Offers" viewAllHref="/offers" products={offerProducts} />
-        <Section title="Featured Products" viewAllHref="/featured" products={featuredProducts} />
+        <ScrollSection title="Limited Offers" viewAllHref="/offers" products={offerProducts} />
+        <ScrollSection title="Featured Products" viewAllHref="/featured" products={featuredProducts} />
         <Section title="All Products" viewAllHref="/products" products={allProducts.slice(0, 12)} />
         <TrustRow />
       </div>

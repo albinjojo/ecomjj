@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
-import { getAddresses, createAddress, deleteAddress, queryKeys } from '../lib/api';
+import { getAddresses, createAddress, deleteAddress, createOrder, queryKeys } from '../lib/api';
 import { getEffectivePrice } from '../lib/pricing';
 
 function emptyAddressForm() {
@@ -190,12 +190,14 @@ function AddressForm({ onCreated, onCancel, showCancel }) {
 
 function Checkout() {
   const { user, loading: authLoading } = useAuth();
-  const { items, totalPrice } = useCart();
+  const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [manualShowForm, setManualShowForm] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -242,9 +244,27 @@ function Checkout() {
     }
   }
 
-  function handlePlaceOrder() {
-    if (!canPlaceOrder) return;
-    console.log('Place order with:', { address: selectedAddress, items });
+  async function handlePlaceOrder() {
+    if (!canPlaceOrder || placingOrder) return;
+
+    setOrderError(null);
+    setPlacingOrder(true);
+    try {
+      const { order } = await createOrder({
+        addressId: selectedAddress.id,
+        paymentMethod: 'COD',
+        items: items.map((item) => ({
+          productVariantId: item.variantId,
+          quantity: item.quantity,
+        })),
+      });
+      clearCart();
+      navigate('/order-confirmation', { state: { order } });
+    } catch (err) {
+      console.error(err);
+      setOrderError(err.message);
+      setPlacingOrder(false);
+    }
   }
 
   return (
@@ -334,16 +354,20 @@ function Checkout() {
           </div>
         </section>
 
+        {orderError && (
+          <div className="rounded-lg bg-red-50 p-3 text-sm text-brand-red">{orderError}</div>
+        )}
+
         <button
           onClick={handlePlaceOrder}
-          disabled={!canPlaceOrder}
+          disabled={!canPlaceOrder || placingOrder}
           className={`w-full rounded-full py-3 text-sm font-semibold transition-colors ${
-            canPlaceOrder
+            canPlaceOrder && !placingOrder
               ? 'bg-brand-red text-white hover:bg-brand-red-dark'
               : 'cursor-not-allowed bg-gray-200 text-gray-400'
           }`}
         >
-          Place Order
+          {placingOrder ? 'Placing order...' : 'Place Order'}
         </button>
       </div>
     </div>

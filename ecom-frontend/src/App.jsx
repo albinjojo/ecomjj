@@ -10,6 +10,8 @@ import Offers from './pages/Offers';
 import Featured from './pages/Featured';
 import AllProducts from './pages/AllProducts';
 import CategoryProducts from './pages/CategoryProducts';
+import OrderConfirmation from './pages/OrderConfirmation';
+import Orders from './pages/Orders';
 import ComingSoon from './pages/ComingSoon';
 
 function App() {
@@ -27,6 +29,8 @@ function App() {
           <Route path="/featured" element={<Featured />} />
           <Route path="/products" element={<AllProducts />} />
           <Route path="/category/:slug" element={<CategoryProducts />} />
+          <Route path="/order-confirmation" element={<OrderConfirmation />} />
+          <Route path="/orders" element={<Orders />} />
           <Route path="*" element={<ComingSoon />} />
         </Routes>
       </main>

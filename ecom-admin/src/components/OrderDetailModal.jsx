@@ -5,6 +5,9 @@ const STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'PROCESSING', 'OUT_FOR_DELIVERY'
 function OrderDetailModal({ order, onClose, onUpdated }) {
   const [selectedStatus, setSelectedStatus] = useState(order.orderStatus);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const isCancelled = order.orderStatus === 'CANCELLED';
 
   async function handleUpdate() {
     if (selectedStatus === order.orderStatus) {
@@ -18,6 +21,7 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
       markPaid = window.confirm('Did the customer pay for this order?');
     }
 
+    setError(null);
     setSaving(true);
     try {
       const body = { orderStatus: selectedStatus };
@@ -32,13 +36,13 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error('Failed to update');
-
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update order status');
+
       onUpdated(data.order);
       onClose();
     } catch (err) {
-      alert('Failed to update order status');
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -102,30 +106,54 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
         </div>
 
         <label className="block text-sm font-medium mb-2">Order Status</label>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-4"
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+        {isCancelled ? (
+          <div className="mb-4">
+            <span className="inline-block text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-semibold">
+              CANCELLED
+            </span>
+            <p className="text-xs text-gray-500 mt-1">
+              This order has been cancelled and its status can no longer be changed.
+            </p>
+          </div>
+        ) : (
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full border rounded px-3 py-2 mb-4"
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        )}
+
+        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
         <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 border rounded py-2 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdate}
-            disabled={saving}
-            className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? 'Updating...' : 'Update Status'}
-          </button>
+          {isCancelled ? (
+            <button
+              onClick={onClose}
+              className="flex-1 border rounded py-2 hover:bg-gray-50"
+            >
+              Close
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onClose}
+                className="flex-1 border rounded py-2 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdate}
+                disabled={saving}
+                className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? 'Updating...' : 'Update Status'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

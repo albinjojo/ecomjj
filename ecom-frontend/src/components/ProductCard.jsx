@@ -53,7 +53,7 @@ function ProductCard({ product }) {
   return (
     <div
       onClick={() => navigate(`/products/${product.slug}`)}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg transition-shadow hover:shadow-xl"
     >
       <div className="relative aspect-square bg-brand-pink">
         {discount > 0 && (
