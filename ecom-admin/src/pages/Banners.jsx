@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import FileUploadButton from '../components/FileUploadButton';
 
 function Banners() {
   const [banners, setBanners] = useState([]);
@@ -57,50 +58,55 @@ function Banners() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Banners</h1>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-gray-900">Banners</h1>
         <button
           onClick={openCreateForm}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="rounded-lg bg-brand-red px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark"
         >
           + Add Banner
         </button>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-gray-500">Loading...</p>
       ) : (
         <div className="space-y-3">
           {banners.map((b) => (
-            <div key={b.id} className="border rounded-lg p-3 bg-white shadow-sm flex items-center gap-4">
+            <div
+              key={b.id}
+              className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-md sm:flex-row sm:items-center sm:gap-4"
+            >
               <img
                 src={`http://localhost:4000${b.imageUrl}`}
                 alt={b.title}
-                className="w-32 h-16 object-cover rounded"
+                className="h-32 w-full rounded-lg object-cover sm:h-16 sm:w-32"
               />
-              <div className="flex-1">
-                <p className="font-semibold">{b.title}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-gray-900">{b.title}</p>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded ${
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                     b.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                   }`}
                 >
                   {b.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <button
-                onClick={() => openEditForm(b)}
-                className="text-blue-600 text-sm hover:underline"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(b.id)}
-                className="text-red-600 text-sm hover:underline"
-              >
-                Delete
-              </button>
+              <div className="flex gap-4 sm:gap-2">
+                <button
+                  onClick={() => openEditForm(b)}
+                  className="text-sm font-semibold text-gray-600 hover:text-brand-red"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(b.id)}
+                  className="text-sm font-semibold text-red-600 hover:text-red-700"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -165,53 +171,55 @@ function BannerFormModal({ banner, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-4">{banner ? 'Edit Banner' : 'New Banner'}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <form onSubmit={handleSubmit} className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+        <h2 className="mb-4 text-xl font-bold text-gray-900">{banner ? 'Edit Banner' : 'New Banner'}</h2>
 
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+        {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-brand-red">{error}</div>}
 
-        <label className="block text-sm font-medium mb-1">Title</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Title</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-4"
+          className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           required
         />
 
         {!banner && (
           <>
-            <label className="block text-sm font-medium mb-1">Banner Image (wide, e.g. 1920px)</label>
-            <input
-              type="file"
-              accept="image/*,.heic,.heif"
-              onChange={(e) => setImageFile(e.target.files[0])}
-              className="w-full mb-4"
-              required
-            />
+            <label className="mb-1 block text-sm font-medium text-gray-700">Banner Image (wide, e.g. 1920px)</label>
+            <div className="mb-4">
+              <FileUploadButton
+                id="banner-image-upload"
+                accept="image/*,.heic,.heif"
+                onChange={(e) => setImageFile(e.target.files[0])}
+                label="Choose Image"
+              />
+            </div>
           </>
         )}
 
         {banner && (
-          <label className="flex items-center gap-2 mb-4">
+          <label className="mb-4 flex items-center gap-2">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
+              className="accent-brand-red"
             />
-            <span className="text-sm">Active</span>
+            <span className="text-sm text-gray-700">Active</span>
           </label>
         )}
 
         <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="flex-1 border rounded py-2 hover:bg-gray-50">
+          <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-300 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50">
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-brand-red py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

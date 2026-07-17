@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import FileUploadButton from '../components/FileUploadButton';
 
 const UNITS = ['g', 'kg', 'ml', 'L', 'pcs', 'pack', 'box'];
 const MAX_IMAGES = 4;
@@ -58,48 +59,57 @@ function Products() {
     fetchData();
   }
 
+  function handleProductDeleted() {
+    setSelectedProduct(null);
+    fetchData();
+  }
+
+  function handleProductToggled() {
+    fetchData();
+  }
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Products</h1>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-gray-900">Products</h1>
         <button
           onClick={openCreateForm}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="rounded-lg bg-brand-red px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark"
         >
           + Add Product
         </button>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-gray-500">Loading...</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {products.map((p) => (
             <div
               key={p.id}
-              className="border rounded-lg overflow-hidden bg-white shadow-sm cursor-pointer hover:shadow-md"
+              className="cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md transition-shadow hover:shadow-lg"
               onClick={() => setSelectedProduct(p)}
             >
-              <div className="h-32 bg-gray-100 flex items-center justify-center">
+              <div className="flex h-32 items-center justify-center bg-brand-pink">
                 {p.thumbnailUrl ? (
                   <img
                     src={`http://localhost:4000${p.thumbnailUrl}`}
                     alt={p.name}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-gray-400 text-sm">No image</span>
+                  <span className="text-sm text-brand-red/50">No image</span>
                 )}
               </div>
               <div className="p-3">
-                <p className="font-semibold">{p.name}</p>
+                <p className="font-semibold text-gray-900">{p.name}</p>
                 <p className="text-xs text-gray-500">{p.category?.name}</p>
-                <div className="flex gap-1 mt-1 flex-wrap">
-                  <span className={`text-xs px-2 py-0.5 rounded ${p.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                     {p.isActive ? 'Active' : 'Inactive'}
                   </span>
                   {p.isFeatured && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700">Featured</span>
+                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">Featured</span>
                   )}
                 </div>
               </div>
@@ -113,6 +123,8 @@ function Products() {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onEdit={() => openEditForm(selectedProduct)}
+          onDeleted={handleProductDeleted}
+          onToggled={handleProductToggled}
         />
       )}
 
@@ -129,13 +141,70 @@ function Products() {
   );
 }
 
-function ProductDetailModal({ product, onClose, onEdit }) {
+function ProductDetailModal({ product, onClose, onEdit, onDeleted, onToggled }) {
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  const [isActive, setIsActive] = useState(product.isActive);
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState(null);
+
+  async function handleDelete() {
+    if (!window.confirm('Are you sure you want to permanently delete this product? This cannot be undone.')) {
+      return;
+    }
+
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete product');
+
+      onDeleted();
+    } catch (err) {
+      setDeleteError(err.message);
+      setDeleting(false);
+    }
+  }
+
+  async function handleToggleActive() {
+    const nextActive = !isActive;
+    const confirmText = nextActive
+      ? 'Activate this product? It will become visible to customers again.'
+      : 'Deactivate this product? It will no longer be visible to customers.';
+
+    if (!window.confirm(confirmText)) return;
+
+    setToggleError(null);
+    setToggling(true);
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update product');
+
+      setIsActive(nextActive);
+      onToggled?.();
+    } catch (err) {
+      setToggleError(err.message);
+    } finally {
+      setToggling(false);
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-bold">{product.name}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <h2 className="text-xl font-bold text-gray-900">{product.name}</h2>
+          <button onClick={onClose} className="text-2xl leading-none text-gray-400 hover:text-gray-700">
             &times;
           </button>
         </div>
@@ -144,32 +213,32 @@ function ProductDetailModal({ product, onClose, onEdit }) {
           <img
             src={`http://localhost:4000${product.thumbnailUrl}`}
             alt={product.name}
-            className="w-full h-48 object-cover rounded mb-4"
+            className="mb-4 h-48 w-full rounded-lg object-cover"
           />
         )}
 
-        <p className="text-sm text-gray-500 mb-1">{product.category?.name}</p>
-        {product.description && <p className="text-sm mb-3">{product.description}</p>}
+        <p className="mb-1 text-sm text-gray-500">{product.category?.name}</p>
+        {product.description && <p className="mb-3 text-sm text-gray-700">{product.description}</p>}
 
-        <div className="flex gap-1 mb-4">
-          <span className={`text-xs px-2 py-0.5 rounded ${product.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-            {product.isActive ? 'Active' : 'Inactive'}
+        <div className="mb-4 flex gap-1">
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+            {isActive ? 'Active' : 'Inactive'}
           </span>
           {product.isFeatured && (
-            <span className="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700">Featured</span>
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">Featured</span>
           )}
         </div>
 
-        <h3 className="font-semibold mb-2">Variants</h3>
-        <div className="space-y-2 mb-4">
+        <h3 className="mb-2 font-semibold text-gray-900">Variants</h3>
+        <div className="mb-4 space-y-2">
           {product.variants?.map((v) => (
-            <div key={v.id} className="border rounded p-2 text-sm flex justify-between items-center">
+            <div key={v.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-gray-200 p-2 text-sm">
               <span>{v.variantName}</span>
               <span>
                 {v.offerEnabled && v.offerPrice ? (
                   <>
-                    <span className="line-through text-gray-400 mr-2">£{v.price}</span>
-                    <span className="text-red-600 font-semibold">£{v.offerPrice}</span>
+                    <span className="mr-2 text-gray-400 line-through">£{v.price}</span>
+                    <span className="font-semibold text-brand-red">£{v.offerPrice}</span>
                   </>
                 ) : (
                   <span>£{v.price}</span>
@@ -180,16 +249,41 @@ function ProductDetailModal({ product, onClose, onEdit }) {
           ))}
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 border rounded py-2 hover:bg-gray-50">
-            Close
-          </button>
+        {toggleError && (
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{toggleError}</div>
+        )}
+
+        {deleteError && (
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{deleteError}</div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <button
-            onClick={onEdit}
-            className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="rounded-lg bg-red-600 px-5 py-2 font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
           >
-            Edit
+            {deleting ? 'Deleting...' : 'Delete'}
           </button>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleToggleActive}
+              disabled={toggling}
+              className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            >
+              {toggling ? 'Updating...' : isActive ? 'Deactivate' : 'Activate'}
+            </button>
+            <button onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50">
+              Close
+            </button>
+            <button
+              onClick={onEdit}
+              className="rounded-lg bg-brand-red px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark"
+            >
+              Edit
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -390,29 +484,29 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6"
       >
-        <h2 className="text-xl font-bold mb-4">{product ? 'Edit Product' : 'New Product'}</h2>
+        <h2 className="mb-4 text-xl font-bold text-gray-900">{product ? 'Edit Product' : 'New Product'}</h2>
 
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+        {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-brand-red">{error}</div>}
 
-        <label className="block text-sm font-medium mb-1">Name</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-3"
+          className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           required
         />
 
-        <label className="block text-sm font-medium mb-1">Category</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-3"
+          className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           required
         >
           {categories.map((c) => (
@@ -420,32 +514,32 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
           ))}
         </select>
 
-        <label className="block text-sm font-medium mb-1">Description</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-3"
+          className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           rows={2}
         />
 
         {product && existingImages.length > 0 && (
           <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Current Images ({existingImages.length}/{MAX_IMAGES})
             </label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               {existingImages.map((img) => {
                 const thumbUrl = thumbFor(img.imageUrl);
                 const isMain = thumbUrl === mainImageUrl;
                 return (
-                  <div key={img.id} className="relative w-20 h-20 border rounded overflow-hidden">
+                  <div key={img.id} className="relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
                     <img
                       src={`http://localhost:4000${thumbUrl}`}
                       alt="Product"
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                     {isMain && (
-                      <span className="absolute top-0 left-0 bg-yellow-400 text-[10px] px-1 rounded-br">
+                      <span className="absolute left-0 top-0 rounded-br bg-yellow-400 px-1 text-[10px] font-semibold">
                         Main
                       </span>
                     )}
@@ -454,7 +548,7 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
                       onClick={() => handleSetMainImage(img.id, img.imageUrl)}
                       disabled={isMain}
                       title="Set as main"
-                      className="absolute bottom-0 left-0 bg-black/60 text-white text-xs px-1 leading-4 disabled:opacity-40"
+                      className="absolute bottom-0 left-0 bg-black/60 px-1 text-xs leading-4 text-white disabled:opacity-40"
                     >
                       ★
                     </button>
@@ -462,7 +556,7 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
                       type="button"
                       onClick={() => handleDeleteImage(img.id)}
                       title="Delete image"
-                      className="absolute top-0 right-0 bg-black/60 text-white text-xs w-5 h-5 flex items-center justify-center hover:bg-red-600"
+                      className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center bg-black/60 text-xs text-white hover:bg-brand-red"
                     >
                       &times;
                     </button>
@@ -473,49 +567,51 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
           </div>
         )}
 
-        <label className="block text-sm font-medium mb-1">
+        <label className="mb-1 block text-sm font-medium text-gray-700">
           {product ? 'Add More Images' : 'Product Images'} ({existingImages.length + imageFiles.length}/{MAX_IMAGES})
         </label>
-        <input
-          type="file"
-          accept="image/*,.heic,.heif"
-          multiple
-          disabled={remainingImageSlots <= 0}
-          onChange={handleImageFilesChange}
-          className="w-full mb-3"
-        />
-        {imageActionError && <p className="text-red-600 text-xs -mt-2 mb-3">{imageActionError}</p>}
+        <div className="mb-3">
+          <FileUploadButton
+            id="product-images-upload"
+            accept="image/*,.heic,.heif"
+            multiple
+            disabled={remainingImageSlots <= 0}
+            onChange={handleImageFilesChange}
+            label="Choose Images"
+          />
+        </div>
+        {imageActionError && <p className="-mt-2 mb-3 text-xs text-brand-red">{imageActionError}</p>}
 
-        <div className="flex gap-4 mb-4">
+        <div className="mb-4 flex gap-4">
           {product && (
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-              <span className="text-sm">Active</span>
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="accent-brand-red" />
+              <span className="text-sm text-gray-700">Active</span>
             </label>
           )}
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
-            <span className="text-sm">Featured</span>
+            <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="accent-brand-red" />
+            <span className="text-sm text-gray-700">Featured</span>
           </label>
         </div>
 
-        <h3 className="font-semibold mb-2">Variants</h3>
+        <h3 className="mb-2 font-semibold text-gray-900">Variants</h3>
         {variants.map((v, i) => (
-          <div key={i} className="border rounded p-3 mb-3 bg-gray-50">
-            <div className="grid grid-cols-4 gap-2 mb-2">
+          <div key={i} className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <input
                 type="number"
                 step="0.01"
                 placeholder="Qty"
                 value={v.quantity}
                 onChange={(e) => updateVariant(i, 'quantity', e.target.value)}
-                className="border rounded px-2 py-1"
+                className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
                 required
               />
               <select
                 value={v.unit}
                 onChange={(e) => updateVariant(i, 'unit', e.target.value)}
-                className="border rounded px-2 py-1"
+                className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
               >
                 {UNITS.map((u) => (
                   <option key={u} value={u}>{u}</option>
@@ -527,7 +623,7 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
                 placeholder="Price (£)"
                 value={v.price}
                 onChange={(e) => updateVariant(i, 'price', e.target.value)}
-                className="border rounded px-2 py-1"
+                className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
                 required
               />
               <input
@@ -535,41 +631,42 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
                 placeholder="Stock"
                 value={v.stock}
                 onChange={(e) => updateVariant(i, 'stock', e.target.value)}
-                className="border rounded px-2 py-1"
+                className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
                 required
               />
             </div>
 
-            <label className="flex items-center gap-2 mb-2">
+            <label className="mb-2 flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={v.offerEnabled}
                 onChange={(e) => updateVariant(i, 'offerEnabled', e.target.checked)}
+                className="accent-brand-red"
               />
-              <span className="text-sm">Offer active</span>
+              <span className="text-sm text-gray-700">Offer active</span>
             </label>
 
             {v.offerEnabled && (
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <input
                   type="number"
                   step="0.01"
                   placeholder="Offer price (£)"
                   value={v.offerPrice}
                   onChange={(e) => updateVariant(i, 'offerPrice', e.target.value)}
-                  className="border rounded px-2 py-1"
+                  className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
                 />
                 <input
                   type="date"
                   value={v.offerStartDate}
                   onChange={(e) => updateVariant(i, 'offerStartDate', e.target.value)}
-                  className="border rounded px-2 py-1"
+                  className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
                 />
                 <input
                   type="date"
                   value={v.offerEndDate}
                   onChange={(e) => updateVariant(i, 'offerEndDate', e.target.value)}
-                  className="border rounded px-2 py-1"
+                  className="rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-red focus:outline-none"
                 />
               </div>
             )}
@@ -578,7 +675,7 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
               <button
                 type="button"
                 onClick={() => removeVariant(i)}
-                className="text-red-600 text-sm hover:underline"
+                className="text-sm font-medium text-red-600 hover:underline"
               >
                 Remove variant
               </button>
@@ -589,19 +686,19 @@ function ProductFormModal({ product, categories, onClose, onSaved, onImagesChang
         <button
           type="button"
           onClick={addVariant}
-          className="text-blue-600 text-sm hover:underline mb-4"
+          className="mb-4 text-sm font-semibold text-brand-red hover:underline"
         >
           + Add another variant
         </button>
 
         <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="flex-1 border rounded py-2 hover:bg-gray-50">
+          <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-300 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50">
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-brand-red py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

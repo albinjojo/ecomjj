@@ -24,6 +24,28 @@ function Settings() {
     fetchSettings();
   }, []);
 
+  function handleDeliveryToggle(e) {
+    const nextEnabled = e.target.checked;
+    const confirmText = nextEnabled
+      ? 'Enable delivery charge for all future orders?'
+      : 'Disable delivery charge? Orders will no longer include a delivery fee.';
+
+    if (!window.confirm(confirmText)) return;
+
+    setSettings({ ...settings, deliveryChargeEnabled: nextEnabled });
+  }
+
+  function handlePackingToggle(e) {
+    const nextEnabled = e.target.checked;
+    const confirmText = nextEnabled
+      ? 'Enable packing charge for eligible products?'
+      : 'Disable packing charge?';
+
+    if (!window.confirm(confirmText)) return;
+
+    setSettings({ ...settings, packingChargeEnabled: nextEnabled });
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setError(null);
@@ -56,30 +78,29 @@ function Settings() {
   }
 
   if (loading || !settings) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-4 text-gray-500 md:p-8">Loading...</div>;
   }
 
   return (
-    <div className="p-6 max-w-lg">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+    <div className="max-w-lg p-4 md:p-8">
+      <h1 className="mb-6 text-2xl font-extrabold text-gray-900">Settings</h1>
 
-      {message && <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-sm">{message}</div>}
-      {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+      {message && <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</div>}
+      {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-brand-red">{error}</div>}
 
       <form onSubmit={handleSave}>
-        <div className="border rounded-lg p-4 mb-4 bg-white">
-          <label className="flex items-center gap-2 mb-3">
+        <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-md">
+          <label className="mb-3 flex items-center gap-2">
             <input
               type="checkbox"
               checked={settings.deliveryChargeEnabled}
-              onChange={(e) =>
-                setSettings({ ...settings, deliveryChargeEnabled: e.target.checked })
-              }
+              onChange={handleDeliveryToggle}
+              className="accent-brand-red"
             />
-            <span className="font-semibold">Delivery Charge Enabled</span>
+            <span className="font-semibold text-gray-900">Delivery Charge Enabled</span>
           </label>
 
-          <label className="block text-sm font-medium mb-1">Amount (£)</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Amount (£)</label>
           <input
             type="number"
             step="0.01"
@@ -88,26 +109,25 @@ function Settings() {
             onChange={(e) =>
               setSettings({ ...settings, deliveryChargeAmount: e.target.value })
             }
-            className="w-full border rounded px-3 py-2"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           />
         </div>
 
-        <div className="border rounded-lg p-4 mb-4 bg-white">
-          <label className="flex items-center gap-2 mb-3">
+        <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-md">
+          <label className="mb-3 flex items-center gap-2">
             <input
               type="checkbox"
               checked={settings.packingChargeEnabled}
-              onChange={(e) =>
-                setSettings({ ...settings, packingChargeEnabled: e.target.checked })
-              }
+              onChange={handlePackingToggle}
+              className="accent-brand-red"
             />
-            <span className="font-semibold">Packing Charge Enabled</span>
+            <span className="font-semibold text-gray-900">Packing Charge Enabled</span>
           </label>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="mb-3 text-xs text-gray-500">
             Applies to any order containing an item from a category marked "Requires packing charge" (e.g. Frozen Foods).
           </p>
 
-          <label className="block text-sm font-medium mb-1">Amount (£)</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Amount (£)</label>
           <input
             type="number"
             step="0.01"
@@ -116,14 +136,14 @@ function Settings() {
             onChange={(e) =>
               setSettings({ ...settings, packingChargeAmount: e.target.value })
             }
-            className="w-full border rounded px-3 py-2"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           />
         </div>
 
         <button
           type="submit"
           disabled={saving}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="w-full rounded-lg bg-brand-red px-6 py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark disabled:opacity-50 sm:w-auto"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>

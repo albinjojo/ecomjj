@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import FileUploadButton from '../components/FileUploadButton';
 
 function Categories() {
   const [categories, setCategories] = useState([]);
@@ -44,50 +45,50 @@ function Categories() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Categories</h1>
+    <div className="p-4 md:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-gray-900">Categories</h1>
         <button
           onClick={openCreateForm}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="rounded-lg bg-brand-red px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark"
         >
           + Add Category
         </button>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-gray-500">Loading...</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {categories.map((cat) => (
             <div
               key={cat.id}
-              className="border rounded-lg overflow-hidden bg-white shadow-sm cursor-pointer hover:shadow-md"
+              className="cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md transition-shadow hover:shadow-lg"
               onClick={() => openEditForm(cat)}
             >
-              <div className="h-32 bg-gray-100 flex items-center justify-center">
+              <div className="flex h-32 items-center justify-center bg-brand-pink">
                 {cat.imageUrl ? (
                   <img
                     src={`http://localhost:4000${cat.imageUrl}`}
                     alt={cat.name}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-gray-400 text-sm">No image</span>
+                  <span className="text-sm text-brand-red/50">No image</span>
                 )}
               </div>
               <div className="p-3">
-                <p className="font-semibold">{cat.name}</p>
-                <div className="flex gap-2 mt-1">
+                <p className="font-semibold text-gray-900">{cat.name}</p>
+                <div className="mt-1 flex flex-wrap gap-2">
                   <span
-                    className={`text-xs px-2 py-0.5 rounded ${
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                       cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {cat.isActive ? 'Active' : 'Inactive'}
                   </span>
                   {cat.requiresPacking && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
                       Packing Charge
                     </span>
                   )}
@@ -165,66 +166,71 @@ function CategoryFormModal({ category, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg max-w-md w-full p-6"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6"
       >
-        <h2 className="text-xl font-bold mb-4">
+        <h2 className="mb-4 text-xl font-bold text-gray-900">
           {category ? 'Edit Category' : 'New Category'}
         </h2>
 
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+        {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-brand-red">{error}</div>}
 
-        <label className="block text-sm font-medium mb-1">Name</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-4"
+          className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           required
         />
 
-        <label className="block text-sm font-medium mb-1">Category Image</label>
-        <input
-          type="file"
-          accept="image/*,.heic,.heif"
-          onChange={(e) => setImageFile(e.target.files[0])}
-          className="w-full mb-4"
-        />
+        <label className="mb-1 block text-sm font-medium text-gray-700">Category Image</label>
+        <div className="mb-4">
+          <FileUploadButton
+            id="category-image-upload"
+            accept="image/*,.heic,.heif"
+            onChange={(e) => setImageFile(e.target.files[0])}
+            label="Choose Image"
+            existingImageUrl={category?.imageUrl ? `http://localhost:4000${category.imageUrl}` : null}
+          />
+        </div>
 
         {category && (
-          <label className="flex items-center gap-2 mb-3">
+          <label className="mb-3 flex items-center gap-2">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
+              className="accent-brand-red"
             />
-            <span className="text-sm">Active</span>
+            <span className="text-sm text-gray-700">Active</span>
           </label>
         )}
 
-        <label className="flex items-center gap-2 mb-4">
+        <label className="mb-4 flex items-center gap-2">
           <input
             type="checkbox"
             checked={requiresPacking}
             onChange={(e) => setRequiresPacking(e.target.checked)}
+            className="accent-brand-red"
           />
-          <span className="text-sm">Requires packing charge (e.g. frozen items)</span>
+          <span className="text-sm text-gray-700">Requires packing charge (e.g. frozen items)</span>
         </label>
 
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 border rounded py-2 hover:bg-gray-50"
+            className="flex-1 rounded-lg border border-gray-300 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-brand-red py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

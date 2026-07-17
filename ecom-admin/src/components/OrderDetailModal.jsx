@@ -49,37 +49,37 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h2 className="text-xl font-bold">{order.orderNumber}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-bold text-gray-900">{order.orderNumber}</h2>
             <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">
+          <button onClick={onClose} className="text-2xl leading-none text-gray-400 hover:text-gray-700">
             &times;
           </button>
         </div>
 
-        <div className="text-sm mb-4">
+        <div className="mb-4 text-sm">
           <p><strong>{order.address?.name}</strong> — {order.address?.phone}</p>
           <p className="text-gray-600">
             {order.address?.houseName}, {order.address?.street}, {order.address?.city}, {order.address?.postcode}
           </p>
           {order.address?.landmark && <p className="text-gray-500">Landmark: {order.address.landmark}</p>}
           {order.address?.deliveryNotes && (
-            <p className="text-gray-500 italic">Note: {order.address.deliveryNotes}</p>
+            <p className="italic text-gray-500">Note: {order.address.deliveryNotes}</p>
           )}
         </div>
 
-        <div className="border-t border-b py-3 mb-4 text-sm">
+        <div className="mb-4 border-y border-gray-100 py-3 text-sm">
           {order.items?.map((item) => (
-            <div key={item.id} className="flex justify-between mb-1">
-              <span>{item.quantity} × {item.productName} ({item.variantName})</span>
-              <span>£{item.total}</span>
+            <div key={item.id} className="mb-1 flex justify-between gap-2">
+              <span className="min-w-0 truncate">{item.quantity} × {item.productName} ({item.variantName})</span>
+              <span className="shrink-0">£{item.total}</span>
             </div>
           ))}
-          <div className="flex justify-between mt-2 pt-2 border-t text-gray-600">
+          <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-gray-600">
             <span>Subtotal</span><span>£{order.subtotal}</span>
           </div>
           <div className="flex justify-between text-gray-600">
@@ -88,14 +88,14 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
           <div className="flex justify-between text-gray-600">
             <span>Packing</span><span>£{order.packingCharge}</span>
           </div>
-          <div className="flex justify-between font-bold mt-1">
+          <div className="mt-1 flex justify-between font-bold text-gray-900">
             <span>Total</span><span>£{order.grandTotal}</span>
           </div>
         </div>
 
         <div className="mb-4">
           <span
-            className={`text-xs px-2 py-1 rounded ${
+            className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
               order.paymentStatus === 'PAID'
                 ? 'bg-green-100 text-green-700'
                 : 'bg-yellow-100 text-yellow-700'
@@ -105,13 +105,13 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
           </span>
         </div>
 
-        <label className="block text-sm font-medium mb-2">Order Status</label>
+        <label className="mb-2 block text-sm font-medium text-gray-700">Order Status</label>
         {isCancelled ? (
           <div className="mb-4">
-            <span className="inline-block text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-semibold">
+            <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
               CANCELLED
             </span>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-gray-500">
               This order has been cancelled and its status can no longer be changed.
             </p>
           </div>
@@ -119,7 +119,7 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full border rounded px-3 py-2 mb-4"
+            className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -127,13 +127,13 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
           </select>
         )}
 
-        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+        {error && <p className="mb-4 text-sm text-brand-red">{error}</p>}
 
         <div className="flex gap-2">
           {isCancelled ? (
             <button
               onClick={onClose}
-              className="flex-1 border rounded py-2 hover:bg-gray-50"
+              className="flex-1 rounded-lg border border-gray-300 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
             >
               Close
             </button>
@@ -141,14 +141,14 @@ function OrderDetailModal({ order, onClose, onUpdated }) {
             <>
               <button
                 onClick={onClose}
-                className="flex-1 border rounded py-2 hover:bg-gray-50"
+                className="flex-1 rounded-lg border border-gray-300 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdate}
                 disabled={saving}
-                className="flex-1 bg-blue-600 text-white rounded py-2 hover:bg-blue-700 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-brand-red py-2 font-semibold text-white transition-colors hover:bg-brand-red-dark disabled:opacity-50"
               >
                 {saving ? 'Updating...' : 'Update Status'}
               </button>

@@ -36,53 +36,58 @@ function Login({ onLoginSuccess }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-6 text-center">JJ Stores Admin</h1>
+    <div className="flex min-h-screen items-center justify-center bg-brand-cream px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-extrabold tracking-tight text-brand-red">JJ Spices</h1>
+          <p className="mt-1 text-sm font-medium text-gray-500">Admin Dashboard</p>
+        </div>
 
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+          {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-brand-red">{error}</div>}
 
-        <label className="block mb-2 text-sm font-medium">Username</label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full border rounded px-3 py-2 mb-4"
-          required
-        />
-
-        <label className="block mb-2 text-sm font-medium">Password</label>
-        <div className="relative mb-4">
+          <label className="mb-1 block text-sm font-medium text-gray-700">Username</label>
           <input
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded px-3 py-2 pr-16"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
             required
           />
+
+          <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+          <div className="relative mb-4">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-16 focus:border-brand-red focus:outline-none focus:ring-2 focus:ring-brand-red/20"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-brand-red"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
           <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-600"
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-brand-red py-2.5 font-semibold text-white transition-colors hover:bg-brand-red-dark disabled:opacity-50"
           >
-            {showPassword ? 'Hide' : 'Show'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-
-        <div className="text-center mt-4">
-          <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
-            Forgot password?
-          </a>
-        </div>
-      </form>
+          <div className="mt-4 text-center">
+            <a href="/forgot-password" className="text-sm font-semibold text-brand-red hover:underline">
+              Forgot password?
+            </a>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

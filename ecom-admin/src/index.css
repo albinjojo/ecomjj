@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand-red: #c41e2a;
+  --color-brand-red-dark: #a01824;
+  --color-brand-pink: #fbe4e4;
+  --color-brand-cream: #fff8f3;
+}
+
+body {
+  margin: 0;
+  background: var(--color-brand-cream);
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
